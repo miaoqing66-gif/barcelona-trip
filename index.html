@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>巴塞罗那三日游攻略 · 秋季</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --blue:#1b6ca8; --terra:#d96c3a; --green:#4a9b6e;
+    --sand:#f4ece1; --ink:#2d2a26; --muted:#6b6358;
+    --card:#ffffff; --line:#e6ddce;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--ink); background:var(--sand); line-height:1.7;
+  }
+  a{color:var(--blue);}
+  /* ---------- nav ---------- */
+  nav{
+    position:sticky; top:0; z-index:1000; background:rgba(255,255,255,.96);
+    backdrop-filter:blur(6px); border-bottom:1px solid var(--line);
+    display:flex; gap:4px; padding:10px 16px; flex-wrap:wrap; align-items:center;
+  }
+  nav .brand{font-weight:700; color:var(--terra); margin-right:auto; font-size:15px;}
+  nav a{
+    text-decoration:none; color:var(--ink); font-size:14px;
+    padding:6px 12px; border-radius:20px; transition:.2s;
+  }
+  nav a:hover{background:var(--sand);}
+  /* ---------- hero ---------- */
+  header.hero{
+    background:linear-gradient(135deg,#1b6ca8 0%,#2a8fb8 55%,#d96c3a 100%);
+    color:#fff; padding:64px 24px 56px; text-align:center;
+  }
+  header.hero h1{font-size:38px; letter-spacing:1px; margin-bottom:10px;}
+  header.hero .sub{font-size:16px; opacity:.92;}
+  header.hero .tags{margin-top:20px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;}
+  header.hero .tags span{
+    background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.4);
+    padding:5px 14px; border-radius:20px; font-size:13px;
+  }
+  /* ---------- layout ---------- */
+  section{max-width:1080px; margin:0 auto; padding:48px 20px 8px;}
+  h2.title{font-size:26px; margin-bottom:6px; display:flex; align-items:center; gap:10px;}
+  h2.title::before{content:""; width:6px; height:26px; background:var(--terra); border-radius:3px;}
+  .lead{color:var(--muted); margin-bottom:24px; font-size:15px;}
+  /* ---------- weather ---------- */
+  .weather-grid{display:grid; grid-template-columns:1fr 1.4fr; gap:20px;}
+  @media(max-width:760px){.weather-grid{grid-template-columns:1fr;}}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:20px; box-shadow:0 2px 10px rgba(0,0,0,.03);
+  }
+  .now{text-align:center;}
+  .now .temp{font-size:52px; font-weight:700; color:var(--blue); line-height:1.1;}
+  .now .icon{font-size:46px;}
+  .now .desc{color:var(--muted); font-size:14px;}
+  .now .meta{margin-top:8px; font-size:13px; color:var(--muted);}
+  .forecast{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;}
+  .fc-day{
+    flex:1 0 88px; text-align:center; background:var(--sand);
+    border-radius:10px; padding:10px 6px;
+  }
+  .fc-day .d{font-size:12px; color:var(--muted);}
+  .fc-day .i{font-size:26px; margin:2px 0;}
+  .fc-day .t{font-size:13px; font-weight:600;}
+  .fc-day .t .lo{color:var(--muted); font-weight:400;}
+  .climate-table{width:100%; border-collapse:collapse; margin-top:6px; font-size:14px;}
+  .climate-table th,.climate-table td{
+    border:1px solid var(--line); padding:8px 10px; text-align:center;
+  }
+  .climate-table th{background:var(--sand); font-weight:600;}
+  .pack{margin-top:16px; display:flex; flex-wrap:wrap; gap:8px;}
+  .pack span{
+    background:#fff; border:1px dashed var(--terra); color:var(--terra);
+    border-radius:8px; padding:5px 11px; font-size:13px;
+  }
+  /* ---------- map ---------- */
+  #map{height:480px; border-radius:14px; border:1px solid var(--line); margin-top:6px;}
+  .legend{display:flex; gap:18px; margin-top:12px; flex-wrap:wrap; font-size:14px;}
+  .legend i{
+    display:inline-block; width:14px; height:14px; border-radius:50%;
+    margin-right:6px; vertical-align:-2px;
+  }
+  /* ---------- itinerary ---------- */
+  .day-tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;}
+  .day-tabs button{
+    border:1px solid var(--line); background:#fff; cursor:pointer;
+    padding:10px 18px; border-radius:10px; font-size:15px; font-weight:600;
+    color:var(--muted); transition:.2s; font-family:inherit;
+  }
+  .day-tabs button.active{color:#fff; border-color:transparent;}
+  .day-tabs button[data-day="1"].active{background:var(--terra);}
+  .day-tabs button[data-day="2"].active{background:var(--blue);}
+  .day-tabs button[data-day="3"].active{background:var(--green);}
+  .day-panel{display:none;}
+  .day-panel.active{display:block;}
+  .day-head{
+    border-radius:12px; padding:16px 20px; color:#fff; margin-bottom:18px;
+  }
+  .day-head h3{font-size:20px;}
+  .day-head p{font-size:14px; opacity:.92; margin-top:2px;}
+  .stop{
+    display:flex; gap:16px; padding:18px 0; border-bottom:1px dashed var(--line);
+  }
+  .stop:last-child{border-bottom:none;}
+  .stop .time{
+    flex:0 0 58px; font-weight:700; font-size:15px; color:var(--ink);
+    padding-top:2px;
+  }
+  .stop .body{flex:1;}
+  .stop .body h4{font-size:17px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .stop .body .local{color:var(--muted); font-weight:400; font-size:13px;}
+  .badge{
+    font-size:12px; padding:2px 9px; border-radius:12px; color:#fff; font-weight:600;
+  }
+  .b-gaudi{background:#d96c3a;} .b-museum{background:#7a5ea8;}
+  .b-food{background:#c9483b;} .b-beach{background:#e0a52e;}
+  .b-church{background:#5a6b7a;} .b-area{background:#4a9b6e;}
+  .b-show{background:#2a8fb8;}
+  .stop .body p{font-size:14px; color:var(--muted); margin-top:6px;}
+  .stop .body .tip{
+    margin-top:8px; font-size:13px; background:var(--sand);
+    border-left:3px solid var(--terra); padding:7px 11px; border-radius:0 6px 6px 0;
+  }
+  .stop .body .mapbtn{
+    margin-top:10px; display:inline-block; font-size:13px; cursor:pointer;
+    background:#fff; border:1px solid var(--blue); color:var(--blue);
+    padding:4px 12px; border-radius:8px; font-family:inherit;
+  }
+  .stop .body .mapbtn:hover{background:var(--blue); color:#fff;}
+  /* ---------- tips ---------- */
+  .tips-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
+  .tips-grid .card h4{margin-bottom:6px; color:var(--blue); font-size:16px;}
+  .tips-grid .card ul{margin-left:18px; font-size:14px; color:var(--muted);}
+  .tips-grid .card li{margin-bottom:4px;}
+  footer{
+    text-align:center; padding:36px 20px; color:var(--muted); font-size:13px;
+    border-top:1px solid var(--line); margin-top:40px;
+  }
+  .leaflet-marker-num{
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:700; font-size:13px; border-radius:50%;
+    border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="brand">🇪🇸 巴塞罗那三日游</span>
+  <a href="#weather">天气</a>
+  <a href="#map-sec">地图</a>
+  <a href="#plan">行程</a>
+  <a href="#tips">实用贴士</a>
+</nav>
+
+<header class="hero">
+  <h1>巴塞罗那三日游攻略</h1>
+  <div class="sub">秋季出行 · 高迪建筑 · 美食 Tapas · 地中海海滩 · 艺术博物馆</div>
+  <div class="tags">
+    <span>📅 建议 9–11 月</span>
+    <span>🏛️ 高迪杰作巡礼</span>
+    <span>🍤 老城美食</span>
+    <span>🏖️ 巴塞罗内塔海滩</span>
+    <span>🎨 国家级博物馆</span>
+  </div>
+</header>
+
+<!-- ================= 天气 ================= -->
+<section id="weather">
+  <h2 class="title">秋季天气</h2>
+  <p class="lead">下方实时预报由免费的 Open-Meteo API 提供;若你的出行日期更靠后,请参考右侧的秋季气候参考表。</p>
+  <div class="weather-grid">
+    <div class="card now" id="nowCard">
+      <div class="icon" id="nowIcon">⏳</div>
+      <div class="temp" id="nowTemp">--°</div>
+      <div class="desc" id="nowDesc">正在获取实时天气…</div>
+      <div class="meta" id="nowMeta"></div>
+    </div>
+    <div class="card">
+      <strong style="font-size:15px;">未来 7 天预报(巴塞罗那)</strong>
+      <div class="forecast" id="forecast" style="margin-top:12px;">
+        <div class="fc-day"><div class="d">加载中…</div></div>
+      </div>
+      <strong style="font-size:15px; display:block; margin-top:18px;">秋季气候参考</strong>
+      <table class="climate-table">
+        <tr><th>月份</th><th>平均高/低温</th><th>海水温度</th><th>降雨</th></tr>
+        <tr><td>9 月</td><td>26° / 19°</td><td>约 24°(可游泳)</td><td>偶有阵雨</td></tr>
+        <tr><td>10 月</td><td>22° / 15°</td><td>约 21°</td><td>较多,带伞</td></tr>
+        <tr><td>11 月</td><td>17° / 11°</td><td>约 17°</td><td>较多,偏凉</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="pack">
+    <strong style="font-size:14px; align-self:center;">建议携带:</strong>
+    <span>轻薄外套 / 针织衫</span>
+    <span>舒适步行鞋</span>
+    <span>折叠雨伞</span>
+    <span>太阳镜 + 防晒</span>
+    <span>9 月可带泳衣</span>
+    <span>晚间稍厚外套(11 月)</span>
+  </div>
+</section>
+
+<!-- ================= 地图 ================= -->
+<section id="map-sec">
+  <h2 class="title">行程地图</h2>
+  <p class="lead">基于免费开源的 OpenStreetMap + Leaflet(无需 API key)。点击标记查看景点;在下方行程中点「在地图上查看」可定位。</p>
+  <div id="map"></div>
+  <div class="legend">
+    <span><i style="background:#d96c3a;"></i>第一天 · 高迪建筑</span>
+    <span><i style="background:#1b6ca8;"></i>第二天 · 老城与艺术</span>
+    <span><i style="background:#4a9b6e;"></i>第三天 · 蒙特惠奇与海滩</span>
+  </div>
+</section>
+
+<!-- ================= 行程 ================= -->
+<section id="plan">
+  <h2 class="title">三天行程规划</h2>
+  <p class="lead">行程按地理位置就近安排,减少往返;时间为建议值,可按个人节奏调整。</p>
+  <div class="day-tabs">
+    <button data-day="1" class="active">第一天</button>
+    <button data-day="2">第二天</button>
+    <button data-day="3">第三天</button>
+  </div>
+
+  <div class="day-panel active" data-day="1">
+    <div class="day-head" style="background:linear-gradient(120deg,#d96c3a,#e89b5c);">
+      <h3>第一天 · 高迪建筑巡礼</h3>
+      <p>圣家堂 → 格拉西亚大道双宅 → 桂尔公园,一天走遍高迪最经典的杰作。</p>
+    </div>
+    <div class="stop-list" data-list="1"></div>
+  </div>
+
+  <div class="day-panel" data-day="2">
+    <div class="day-head" style="background:linear-gradient(120deg,#1b6ca8,#3aa0c8);">
+      <h3>第二天 · 老城漫步 · 艺术与美食</h3>
+      <p>哥特区、博盖利亚市场、毕加索博物馆,以 El Born 区 Tapas 巡游收尾。</p>
+    </div>
+    <div class="stop-list" data-list="2"></div>
+  </div>
+
+  <div class="day-panel" data-day="3">
+    <div class="day-head" style="background:linear-gradient(120deg,#4a9b6e,#6cb98c);">
+      <h3>第三天 · 蒙特惠奇山 · 地中海海滩</h3>
+      <p>上午艺术博物馆,下午巴塞罗内塔海滩与海鲜饭,夜晚魔幻喷泉灯光秀。</p>
+    </div>
+    <div class="stop-list" data-list="3"></div>
+  </div>
+</section>
+
+<!-- ================= 贴士 ================= -->
+<section id="tips">
+  <h2 class="title">实用贴士</h2>
+  <p class="lead">行前准备与当地出行的关键信息。</p>
+  <div class="tips-grid">
+    <div class="card">
+      <h4>🎫 门票预订</h4>
+      <ul>
+        <li>圣家堂、桂尔公园、米拉之家、毕加索博物馆务必<strong>官网提前预约</strong>分时段门票,旺季常售罄。</li>
+        <li>毕加索博物馆周四傍晚、每月首个周日通常免费,但需抢预约名额。</li>
+        <li>考虑购买 Barcelona Card 或 Articket(博物馆套票)。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🚇 交通出行</h4>
+      <ul>
+        <li>地铁 + 公交可买 <strong>T-casual</strong>(10 次票)或 Hola Barcelona 旅游票。</li>
+        <li>市中心景点多可步行;桂尔公园、蒙特惠奇有上坡,建议搭地铁/巴士。</li>
+        <li>机场往返可乘 Aerobús 或地铁 L9 Sud 线。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🍽️ 用餐习惯</h4>
+      <ul>
+        <li>西班牙午餐 14:00 后、晚餐 21:00 后才是高峰,餐厅开门较晚。</li>
+        <li>Tapas 适合多人分享;海鲜饭(Paella)多为午餐供应。</li>
+        <li>正餐通常给 5–10% 小费即可,非强制。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🛡️ 安全须知</h4>
+      <ul>
+        <li>兰布拉大道、地铁、博盖利亚市场<strong>扒手较多</strong>,看管好财物。</li>
+        <li>背包前背,手机勿放桌面;护照建议留酒店。</li>
+        <li>紧急电话 112;加泰罗尼亚语 + 西班牙语通用,英语景区可通。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🌅 秋季小贴士</h4>
+      <ul>
+        <li>9 月海水仍温暖可游泳,10 月后以漫步为主。</li>
+        <li>日落约 18:00–20:00(随月份变化),桂尔公园看日落很美。</li>
+        <li>11 月昼夜温差大,备一件稍厚外套。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>💶 其他</h4>
+      <ul>
+        <li>货币欧元,刷卡普遍;备少量现金应急。</li>
+        <li>魔幻喷泉灯光秀<strong>季节性开放</strong>,出行前查官网当季时刻表。</li>
+        <li>商店周日多休息,博物馆部分周一闭馆。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  数据来源:地图 © OpenStreetMap 贡献者 · 实时天气 © Open-Meteo.com(均为免费开放服务)<br>
+  本攻略为行程参考,门票时间、喷泉演出等请以官方最新信息为准。
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ---------------- 行程数据 ---------------- */
+const dayColors = {1:'#d96c3a',2:'#1b6ca8',3:'#4a9b6e'};
+const spots = [
+  // ===== Day 1 =====
+  {day:1,time:'09:00',name:'圣家堂',local:'Basílica de la Sagrada Família',cat:'gaudi',
+   lat:41.4036,lng:2.1744,
+   desc:'高迪未竟的传世杰作,自然主义的森林状中殿与彩色玻璃光影令人震撼。建议预约登塔。',
+   tip:'官网预约分时段门票,9:00 开门即入可避开人潮;参观约 2 小时。'},
+  {day:1,time:'12:00',name:'巴特罗之家',local:'Casa Batlló',cat:'gaudi',
+   lat:41.3917,lng:2.1649,
+   desc:'格拉西亚大道上的「龙之屋」,波浪状立面与骨骼状阳台是高迪想象力的巅峰。',
+   tip:'从圣家堂可步行约 25 分钟或乘地铁;外立面免费欣赏,内部需购票。'},
+  {day:1,time:'13:15',name:'午餐 · Tapas 24',local:'Tapas 风格小馆',cat:'food',
+   lat:41.3909,lng:2.1640,
+   desc:'名厨打理的现代 Tapas,招牌 McFoie 汉堡与伊比利亚火腿可乐饼,人气很高。',
+   tip:'格拉西亚大道周边餐厅密集,也可选 Cervecería Catalana 等老牌 Tapas 店。'},
+  {day:1,time:'15:00',name:'米拉之家',local:'Casa Milà (La Pedrera)',cat:'gaudi',
+   lat:41.3954,lng:2.1619,
+   desc:'又称「采石场」,起伏的石质立面与屋顶超现实的战士造型烟囱不可错过。',
+   tip:'屋顶平台是拍照亮点,午后光线柔和;距巴特罗之家步行 5 分钟。'},
+  {day:1,time:'16:30',name:'桂尔公园',local:'Park Güell',cat:'gaudi',
+   lat:41.4145,lng:2.1527,
+   desc:'马赛克蜥蜴、波浪长椅与糖果屋,俯瞰全城的观景台是看日落的绝佳地点。',
+   tip:'付费区(纪念区)需预约;地势较高,建议乘地铁 L3 + 步行或巴士前往。'},
+  {day:1,time:'19:30',name:'晚餐 · 格拉西亚区',local:'Barri de Gràcia',cat:'food',
+   lat:41.4029,lng:2.1568,
+   desc:'文艺氛围的老城区,Plaça del Sol 周边广场遍布小餐馆与酒吧,本地人聚集。',
+   tip:'从桂尔公园下山顺路;西班牙晚餐 21:00 才热闹,可先散步再入座。'},
+  // ===== Day 2 =====
+  {day:2,time:'09:30',name:'巴塞罗那主教座堂',local:'Catedral de Barcelona',cat:'church',
+   lat:41.3839,lng:2.1762,
+   desc:'哥特区核心的宏伟教堂,内部回廊养着 13 只白鹅,可登顶俯瞰老城屋顶。',
+   tip:'清晨人少光线好;着装需得体(避免过短衣物)。'},
+  {day:2,time:'10:45',name:'哥特区漫步',local:'Barri Gòtic',cat:'area',
+   lat:41.3802,lng:2.1753,
+   desc:'狭窄石巷、皇家广场(Plaça Reial)与主教桥,中世纪巴塞罗那的迷人迷宫。',
+   tip:'随意漫步即可,留意巷弄里的小店与街头艺人;看管好随身物品。'},
+  {day:2,time:'12:00',name:'博盖利亚市场',local:'Mercat de la Boqueria',cat:'area',
+   lat:41.3818,lng:2.1717,
+   desc:'兰布拉大道旁的百年市场,鲜榨果汁、火腿、海鲜与小吃摊琳琅满目。',
+   tip:'人多需防扒手;深处摊位价格更实惠,可在此解决简单午餐。'},
+  {day:2,time:'14:30',name:'毕加索博物馆',local:'Museu Picasso',cat:'museum',
+   lat:41.3851,lng:2.1807,
+   desc:'坐落于 El Born 区中世纪宅邸,珍藏毕加索早期作品,呈现其风格演变。',
+   tip:'务必官网预约;周四傍晚等时段有免费名额但极抢手。'},
+  {day:2,time:'16:15',name:'海洋圣母圣殿',local:'Santa Maria del Mar',cat:'church',
+   lat:41.3839,lng:2.1819,
+   desc:'加泰罗尼亚哥特式的纯净典范,高耸立柱与简洁空间气势非凡,免费入内。',
+   tip:'就在毕加索博物馆附近,步行可达;可付费登塔。'},
+  {day:2,time:'17:15',name:'加泰罗尼亚音乐宫',local:'Palau de la Música Catalana',cat:'area',
+   lat:41.3875,lng:2.1751,
+   desc:'现代主义建筑瑰宝,马赛克立柱与倒挂彩色玻璃天窗璀璨夺目,世界遗产。',
+   tip:'内部需参加导览或观看演出;外立面与售票厅也值得一看。'},
+  {day:2,time:'20:00',name:'El Born Tapas 巡游',local:'El Xampanyet 等',cat:'food',
+   lat:41.3845,lng:2.1815,
+   desc:'在 El Born 区小酒馆间穿梭,配上 Cava 气泡酒与腌凤尾鱼,体验最地道的夜晚。',
+   tip:'老牌 El Xampanyet 不接受预约,早点去排队;多走几家各点一两样。'},
+  // ===== Day 3 =====
+  {day:3,time:'10:00',name:'加泰罗尼亚国家艺术博物馆',local:'MNAC',cat:'museum',
+   lat:41.3686,lng:2.1536,
+   desc:'坐落蒙特惠奇山的国家宫,收藏顶级罗马式壁画与哥特、文艺复兴艺术,露台可眺望全城。',
+   tip:'山下西班牙广场地铁可达,沿台阶上行;露台景观免费。'},
+  {day:3,time:'12:00',name:'胡安·米罗基金会',local:'Fundació Joan Miró',cat:'museum',
+   lat:41.3686,lng:2.1599,
+   desc:'明亮通透的展馆陈列米罗的绘画、雕塑与挂毯,是加泰罗尼亚现代艺术的殿堂。',
+   tip:'与 MNAC 同在蒙特惠奇山,步行约 15 分钟即可串联。'},
+  {day:3,time:'14:00',name:'午餐 · 巴塞罗内塔海鲜饭',local:'Barceloneta',cat:'food',
+   lat:41.3789,lng:2.1895,
+   desc:'海滨渔人区的传统餐厅,Can Solé、La Mar Salada 等以正宗海鲜饭闻名。',
+   tip:'海鲜饭多为午餐供应、按人数起订;热门店建议提前订位。'},
+  {day:3,time:'15:30',name:'巴塞罗内塔海滩',local:'Platja de la Barceloneta',cat:'beach',
+   lat:41.3784,lng:2.1925,
+   desc:'市区最便捷的金色沙滩,海滨步道适合散步骑行;9 月仍可下水,秋日漫步惬意。',
+   tip:'沙滩同样有扒手,贵重物品随身;海边 chiringuito 小酒吧可喝一杯。'},
+  {day:3,time:'21:00',name:'魔幻喷泉灯光秀',local:'Font Màgica de Montjuïc',cat:'show',
+   lat:41.3711,lng:2.1518,
+   desc:'西班牙广场旁的喷泉随音乐与灯光起舞,夜色中的免费视听盛宴。',
+   tip:'演出为季节性开放(秋季通常周四至周六),出行前务必查官网当季时刻表。'},
+];
+
+/* ---------------- 地图 ---------------- */
+const map = L.map('map').setView([41.392,2.165],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19, attribution:'© OpenStreetMap 贡献者'
+}).addTo(map);
+
+const markers = [];
+const dayCounter = {1:0,2:0,3:0};
+spots.forEach((s,idx)=>{
+  dayCounter[s.day]++;
+  const num = dayCounter[s.day];
+  const color = dayColors[s.day];
+  const icon = L.divIcon({
+    className:'',
+    html:`<div class="leaflet-marker-num" style="background:${color};width:26px;height:26px;">${num}</div>`,
+    iconSize:[26,26], iconAnchor:[13,13]
+  });
+  const m = L.marker([s.lat,s.lng],{icon}).addTo(map);
+  m.bindPopup(`<strong>第${s.day}天 · ${s.time}</strong><br>
+    <span style="font-size:15px;color:${color};font-weight:700;">${s.name}</span><br>
+    <span style="color:#888;font-size:12px;">${s.local}</span><br>
+    <span style="font-size:13px;">${s.desc}</span>`);
+  markers[idx]=m;
+});
+const group = L.featureGroup(markers);
+function fitMap(){
+  map.invalidateSize();
+  map.fitBounds(group.getBounds().pad(0.15));
+}
+fitMap();
+setTimeout(fitMap,300);
+window.addEventListener('load',()=>setTimeout(fitMap,200));
+
+function focusSpot(idx){
+  const s = spots[idx];
+  document.getElementById('map').scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>{
+    map.setView([s.lat,s.lng],16,{animate:true});
+    markers[idx].openPopup();
+  },300);
+}
+
+/* ---------------- 行程渲染 ---------------- */
+const catName = {gaudi:'高迪建筑',museum:'博物馆',food:'美食',beach:'海滩',
+  church:'教堂',area:'街区',show:'演出'};
+[1,2,3].forEach(d=>{
+  const box = document.querySelector(`.stop-list[data-list="${d}"]`);
+  spots.forEach((s,idx)=>{
+    if(s.day!==d) return;
+    const el = document.createElement('div');
+    el.className='stop';
+    el.innerHTML=`
+      <div class="time">${s.time}</div>
+      <div class="body">
+        <h4>${s.name}
+          <span class="badge b-${s.cat}">${catName[s.cat]}</span>
+          <span class="local">${s.local}</span>
+        </h4>
+        <p>${s.desc}</p>
+        <div class="tip">💡 ${s.tip}</div>
+        <button class="mapbtn" onclick="focusSpot(${idx})">📍 在地图上查看</button>
+      </div>`;
+    box.appendChild(el);
+  });
+});
+
+/* ---------------- 标签切换 ---------------- */
+document.querySelectorAll('.day-tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const d = btn.dataset.day;
+    document.querySelectorAll('.day-tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.day-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelector(`.day-panel[data-day="${d}"]`).classList.add('active');
+  });
+});
+
+/* ---------------- 实时天气 (Open-Meteo) ---------------- */
+const wmo = {
+  0:['☀️','晴'],1:['🌤️','大致晴朗'],2:['⛅','局部多云'],3:['☁️','阴'],
+  45:['🌫️','雾'],48:['🌫️','雾凇'],
+  51:['🌦️','小毛毛雨'],53:['🌦️','毛毛雨'],55:['🌦️','大毛毛雨'],
+  61:['🌧️','小雨'],63:['🌧️','中雨'],65:['🌧️','大雨'],
+  66:['🌧️','冻雨'],67:['🌧️','强冻雨'],
+  71:['🌨️','小雪'],73:['🌨️','中雪'],75:['🌨️','大雪'],
+  80:['🌦️','阵雨'],81:['🌦️','阵雨'],82:['⛈️','强阵雨'],
+  95:['⛈️','雷雨'],96:['⛈️','雷雨伴冰雹'],99:['⛈️','强雷雨'],
+};
+function wInfo(code){return wmo[code]||['🌡️','—'];}
+
+const wUrl='https://api.open-meteo.com/v1/forecast'
+  +'?latitude=41.3874&longitude=2.1686'
+  +'&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m'
+  +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max'
+  +'&timezone=Europe%2FMadrid&forecast_days=7';
+
+fetch(wUrl).then(r=>r.json()).then(data=>{
+  const c=data.current;
+  const [ci,cd]=wInfo(c.weather_code);
+  document.getElementById('nowIcon').textContent=ci;
+  document.getElementById('nowTemp').textContent=Math.round(c.temperature_2m)+'°';
+  document.getElementById('nowDesc').textContent=cd+' · 巴塞罗那当前天气';
+  document.getElementById('nowMeta').textContent=
+    `湿度 ${c.relative_humidity_2m}% · 风速 ${c.wind_speed_10m} km/h`;
+
+  const fc=document.getElementById('forecast');
+  fc.innerHTML='';
+  const wk=['周日','周一','周二','周三','周四','周五','周六'];
+  data.daily.time.forEach((t,i)=>{
+    const [ic]=wInfo(data.daily.weather_code[i]);
+    const dt=new Date(t);
+    const label=i===0?'今天':wk[dt.getDay()];
+    const div=document.createElement('div');
+    div.className='fc-day';
+    div.innerHTML=`<div class="d">${label}</div>
+      <div class="i">${ic}</div>
+      <div class="t">${Math.round(data.daily.temperature_2m_max[i])}°
+        <span class="lo">${Math.round(data.daily.temperature_2m_min[i])}°</span></div>
+      <div class="d">☂️${data.daily.precipitation_probability_max[i]??0}%</div>`;
+    fc.appendChild(div);
+  });
+}).catch(()=>{
+  document.getElementById('nowIcon').textContent='🌡️';
+  document.getElementById('nowTemp').textContent='--°';
+  document.getElementById('nowDesc').textContent='实时天气获取失败,请参考右侧气候表。';
+  document.getElementById('forecast').innerHTML=
+    '<div class="fc-day"><div class="d">暂无网络数据</div></div>';
+});
+</script>
+</body>
+</html>
